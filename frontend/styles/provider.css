@@ -1,0 +1,6 @@
+.modal{max-height:calc(100vh - 36px);overflow-y:auto}
+.modal select{width:100%;background:#0c192b;border:1px solid #364963;color:#ecf2fc;border-radius:6px;padding:11px;font:13px 'DM Sans','Noto Sans SC',sans-serif}
+.modal select:focus-visible{outline:2px solid #6d9cfa;outline-offset:2px}
+.modal small{overflow-wrap:anywhere}
+.modal .remember-key{display:flex;align-items:center;gap:9px;margin:12px 0 4px;line-height:1.5;color:#cbd9ee;font-weight:500}
+.modal .remember-key input{width:auto;flex:none;accent-color:#5b91f0}

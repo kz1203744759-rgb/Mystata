@@ -1,6 +1,7 @@
 """Validate and compile a fixed-effects linear regression."""
 import math
 import re
+from numeric_types import is_numeric_type
 
 def validate_fixed_effects(spec,dataset):
     if not isinstance(spec,dict):raise ValueError('回归参数无效。')
@@ -11,7 +12,7 @@ def validate_fixed_effects(spec,dataset):
         matches=[v for v in vars if v['name']==value] or [v for v in vars if v['name'].casefold()==value.casefold()]
         if len(matches)!=1:raise ValueError(f'变量 {value} 不存在或大小写有歧义。')
         v=matches[0]
-        if numeric and not re.match(r'^(byte|int|long|float|double)\b',v.get('type','')):raise ValueError(f"{v['name']} 不是数值变量。")
+        if numeric and not is_numeric_type(v.get('type','')):raise ValueError(f"{v['name']} 不是数值变量。")
         return v['name']
     y=resolve(spec.get('outcome'),True)
     explanatory=spec.get('explanatory_variables')

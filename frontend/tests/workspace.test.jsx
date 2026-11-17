@@ -52,6 +52,12 @@ describe('workspace components',()=>{
     fireEvent.click(screen.getByLabelText('选择 b.csv'));
     expect(select).toHaveBeenCalledWith('b');
   });
+  it('offers rollback for the selected DTA file',()=>{
+    const undo=vi.fn(),source={...files[0],format:'dta'};
+    render(<RawFilesPool files={[source]} selected={[]} onSelect={()=>{}} onUpload={()=>{}} onActivate={()=>{}} onOpen={()=>{}} onUndo={undo} busy={false}/>);
+    fireEvent.click(screen.getByRole('button',{name:'回滚 '+source.filename}));
+    expect(undo).toHaveBeenCalledWith(source.id);
+  });
   it('maps synonymous keys and submits a confirmed ETL plan',async()=>{
     const rows=createMappings(files), stock=rows.find(x=>x.target==='id');
     expect(stock.sources).toEqual({a:0,b:0});
@@ -77,6 +83,31 @@ describe('workspace components',()=>{
     expect(names.every(row=>row.keep===false)).toBe(true);
     render(<ETLWorkbench files={inputs} selected={['a','b']} onSuggest={()=>{}} onPreview={()=>{}} onRun={()=>{}} busy={false}/>);
     expect(screen.getByLabelText('主键目标字段（逗号分隔）').value).toBe('');
+  });
+  it('includes the user year range in both preview and execution',async()=>{
+    const run=vi.fn().mockResolvedValue({});
+    const preview=vi.fn().mockResolvedValue({ok:true,metrics:{YEAR_FILTER_DROPPED:2},output:''});
+    render(<ETLWorkbench files={files} selected={['a','b']} onSuggest={()=>{}} onPreview={preview} onRun={run} busy={false}/>);
+    fireEvent.change(screen.getByLabelText('起始年份（含）'),{target:{value:'2010'}});
+    fireEvent.change(screen.getByLabelText('结束年份（含）'),{target:{value:'2024'}});
+    fireEvent.click(screen.getByRole('button',{name:'合并前检查'}));
+    await screen.findByText('检查通过');
+    fireEvent.click(screen.getByRole('button',{name:'确认方案并生成 Stata 清洗脚本'}));
+    await waitFor(()=>expect(run).toHaveBeenCalledOnce());
+    const range={field:'year',start:2010,end:2024};
+    expect(preview.mock.calls[0][0].year_filter).toEqual(range);
+    expect(run.mock.calls[0][0].year_filter).toEqual(range);
+  });
+  it('preserves an agent year filter and requires a new preview after editing',async()=>{
+    const mappings=createMappings(files).map(({target,sources,convert,normalize,keep})=>({target,sources,convert,normalize,keep}));
+    const plan={file_ids:['a','b'],mode:'merge',cardinality:'1:1',keys:['id','year'],drop_missing_keys:true,drop_missing:[],drop_all_missing:true,sample_retention:'matched',conflict_policy:'stop',year_filter:{field:'year',start:2010,end:2024},mappings};
+    render(<ETLWorkbench files={files} selected={['a','b']} proposal={{id:7,plan,preview:{ok:true,metrics:{FINAL_ROWS:1},log:'',error:''}}} onSuggest={()=>{}} onPreview={()=>{}} onRun={()=>{}} busy={false}/>);
+    expect(screen.getByLabelText('起始年份（含）').value).toBe('2010');
+    expect(screen.getByLabelText('结束年份（含）').value).toBe('2024');
+    const run=screen.getByRole('button',{name:'确认方案并生成 Stata 清洗脚本'});
+    await waitFor(()=>expect(run.disabled).toBe(false));
+    fireEvent.change(screen.getByLabelText('结束年份（含）'),{target:{value:'2023'}});
+    expect(run.disabled).toBe(true);
   });
   it('loads an id-only agent preview, and requires a new check if edited',async()=>{
     const mappings=createMappings(files).map(({target,sources,convert,normalize,keep})=>({target,sources,convert,normalize,keep}));

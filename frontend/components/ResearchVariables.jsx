@@ -10,7 +10,7 @@ const groups=[
   {key:'instruments',label:'工具变量',short:'工具',hint:'工具变量'},
 ];
 
-export default function ResearchVariables({dataset,roles={},onChange,onSuggest,datasetRevision,busy,showHeading=true}) {
+export default function ResearchVariables({dataset,roles={},onChange,onSuggest,datasetRevision,confirmedModel,busy,showHeading=true}) {
   const [saving,setSaving]=useState(false),[message,setMessage]=useState('');
   const [suggestions,setSuggestions]=useState({}),[suggesting,setSuggesting]=useState(false);
   const attempted=useRef(null),latest=useRef(datasetRevision);
@@ -34,6 +34,7 @@ export default function ResearchVariables({dataset,roles={},onChange,onSuggest,d
   return <section className="research-variables" aria-label="研究变量配置">
     {showHeading&&<div className="section-label">研究变量 <span>RESEARCH VARIABLES</span></div>}
     <p className="research-intro">从主分析集选择字段，每类可添加多个；助手会在对话中参考。</p>
+    {dataset?.memory_only&&<p className="research-error" role="status">当前数据可能含未保存的 Stata 内存修改，重启后无法自动恢复；请先保存数据。</p>}
     {onSuggest&&<><button type="button" className="outline-action" onClick={suggest} disabled={!dataset||busy||suggesting}>{suggesting?'正在预识别…':'重新预识别'}</button><p className="research-intro">仅发送字段名、标签和类型。识别结果是候选，点击添加后才会使用。</p></>}
     {groups.map(group=>{
       const chosen=roles[group.key]||[];
@@ -49,6 +50,7 @@ export default function ResearchVariables({dataset,roles={},onChange,onSuggest,d
     })}
     {message&&<p className="research-error" role="alert">{message}</p>}
     {saving&&<p className="research-intro" role="status">正在保存…</p>}
-    <p className="research-intro">更换主分析集后需要重新设置；变量角色不代表模型已验证。</p>
+    <p className="research-intro">变量选择会保存在本机，并与数据集绑定；更换主分析集后需重新设置。</p>
+    {dataset&&confirmedModel?.dataset_revision===datasetRevision&&confirmedModel?.spec&&<p className="research-intro">最近固定效应设定：Y = {confirmedModel.spec.outcome}，X = {(confirmedModel.spec.explanatory_variables||[]).join('、')}；{({completed:'已完成',failed:'执行失败',running:'执行中',interrupted:'执行中断'})[confirmedModel.status]||'状态未知'}。</p>}
   </section>;
 }

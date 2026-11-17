@@ -32,6 +32,14 @@ it('disables research selection until a dataset is loaded',()=>{
   expect(screen.getByLabelText('添加X变量').disabled).toBe(true);
 });
 
+it('shows saved model only for the current dataset version',()=>{
+  const model={dataset_revision:'rev-1',status:'completed',spec:{outcome:'pay',explanatory_variables:['roe']}};
+  const {rerender}=render(<ResearchVariables dataset={dataset} roles={{}} onChange={()=>{}} datasetRevision="rev-1" confirmedModel={model} busy={false}/>);
+  expect(screen.getByText(/最近固定效应设定：Y = pay/)).toBeTruthy();
+  rerender(<ResearchVariables dataset={dataset} roles={{}} onChange={()=>{}} datasetRevision="rev-2" confirmedModel={model} busy={false}/>);
+  expect(screen.queryByText(/最近固定效应设定/)).toBeNull();
+});
+
 it('shows automatic suggestions without assigning them until clicked',async()=>{
   const change=vi.fn().mockResolvedValue();
   const suggest=vi.fn().mockResolvedValue({suggestions:{controls:[{name:'pay',reason:'常见财务指标'}]}});

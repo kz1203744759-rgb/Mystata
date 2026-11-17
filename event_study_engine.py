@@ -2,6 +2,7 @@
 import math
 import re
 from did_engine import validate_fixed_effects
+from numeric_types import is_numeric_type
 
 def validate_event_study(spec,dataset):
     if not isinstance(spec,dict):raise ValueError('事件研究参数无效。')
@@ -11,7 +12,7 @@ def validate_event_study(spec,dataset):
         if not isinstance(value,str) or not value.isidentifier() or len(value.encode('utf8'))>32:raise ValueError('请指定有效的字段名。')
         found=[v for v in variables if v['name']==value] or [v for v in variables if v['name'].casefold()==value.casefold()]
         if len(found)!=1:raise ValueError(f'字段 {value} 不存在或有歧义。')
-        if numeric and not re.match(r'^(byte|int|long|float|double)\b',found[0].get('type','')):raise ValueError(f'字段 {value} 必须是数值型。')
+        if numeric and not is_numeric_type(found[0].get('type','')):raise ValueError(f'字段 {value} 必须是数值型。')
         return found[0]['name']
     low,high,reference=spec.get('min_period'),spec.get('max_period'),spec.get('reference_period')
     if any(type(x) is not int for x in (low,high,reference)) or not (-20<=low<=-2 and 0<=high<=20 and low<reference<0):raise ValueError('请指定有效的前后窗口及政策前基准期；基准期不能是合并端点。')

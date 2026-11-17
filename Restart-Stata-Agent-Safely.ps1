@@ -42,7 +42,7 @@ try {
     if ($CheckOnly) { Write-Output "检查通过；当前后台进程：$existing。未执行重启。"; return }
 
     Add-Type -AssemblyName System.Windows.Forms
-    $message = "重启会保留上传文件、日志和已生成的文件。`n`n当前 Stata 内存中的数据修改、回归结果，以及页面对话不会自动恢复；请先保存需要的内容。`n`n确定安全重启吗？"
+    $message = "重启会保留上传文件、日志和已生成的文件。已保存的研究变量和固定效应模型目录会尝试恢复。`n`n尚未保存到文件的 Stata 内存修改、估计状态及页面对话不会自动恢复。`n`n确定安全重启吗？"
     $choice = [Windows.Forms.MessageBox]::Show($message, 'Stata 研究助手 · 安全重启', [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Warning)
     if ($choice -ne [Windows.Forms.DialogResult]::Yes) { return }
 
@@ -59,6 +59,16 @@ try {
         }
     }
 
+    # Switch a prepared frontend only after the old backend has stopped.
+    $pendingBuild = Join-Path $projectDir 'web-build-next'
+    $pendingIndex = Join-Path $pendingBuild 'index.html'
+    if (Test-Path -LiteralPath $pendingIndex -PathType Leaf) {
+        $assets = Join-Path $pendingBuild 'assets'
+        $targetAssets = Join-Path $projectDir 'web-build\assets'
+        New-Item -ItemType Directory -Force -Path $targetAssets | Out-Null
+        Copy-Item -Path (Join-Path $assets '*') -Destination $targetAssets -Force
+        Copy-Item -LiteralPath $pendingIndex -Destination (Join-Path $projectDir 'web-build\index.html') -Force
+    }
     $stdout = Join-Path $projectDir 'service-restart-output.log'
     $stderr = Join-Path $projectDir 'service-restart-error.log'
     $env:PYTHONDONTWRITEBYTECODE = '1'

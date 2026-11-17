@@ -54,6 +54,13 @@ def validate_plan(plan, files):
                 raise ValueError(f'主键 {key} 在每个文件中都需要指定来源字段。')
     if any(name not in names for name in [x.lower() for x in plan.get('drop_missing', [])]):
         raise ValueError('缺失值检查字段必须是保留的目标字段。')
+    year_filter=plan.get('year_filter')
+    if year_filter is not None:
+        if not isinstance(year_filter,dict) or set(year_filter)!={'field','start','end'}: raise ValueError('年份筛选格式无效。')
+        field=year_filter['field']; start=year_filter['start']; end=year_filter['end']
+        if not isinstance(field,str) or field not in {row['target'] for row in rows}: raise ValueError('年份筛选字段必须是保留的目标字段。')
+        if any(v is not None and (type(v) is not int or v < 1000 or v > 9999) for v in (start,end)) or (start is None and end is None) or (start is not None and end is not None and start>end):
+            raise ValueError('请输入有效的年份起止范围。')
     for fid in ids:
         if not used[fid]: raise ValueError(f'文件 {files[fid]["filename"]} 未映射任何字段。')
     return rows
@@ -205,6 +212,19 @@ def compile_plan(plan, files, directory, output, token, preview=False, readable=
             if retention=='matched': lines.append(f'keep if inlist({flag}, 3, 4, 5)')
             elif retention=='master': lines.append(f'keep if {flag} != 2')
             lines.append(f'drop {flag}')
+    year_filter=plan.get('year_filter')
+    if year_filter:
+        field=year_filter['field']; start=year_filter['start']; end=year_filter['end']
+        conditions=[f'missing({field})']
+        if start is not None: conditions.append(f'{field} < {start}')
+        if end is not None: conditions.append(f'{field} > {end}')
+        rejected=' | '.join(conditions)
+        lines += ['', '* 按用户指定的年份范围筛选', f'confirm numeric variable {field}',
+                  f'quietly count if {rejected}', 'display "ETL_YEAR_FILTER_DROPPED=" r(N)',
+                  f'drop if {rejected}']
+        if start is not None: lines.append(f'assert {field} >= {start} if !missing({field})')
+        if end is not None: lines.append(f'assert {field} <= {end} if !missing({field})')
+        lines.append('display "ETL_AFTER_YEAR_FILTER=" _N')
     if plan['mode']=='merge':lines += ['display "ETL_FINAL_BEFORE_MISSING=" _N']
     missing_fields=([row['target'] for row in rows] if plan['mode']=='merge' and plan.get('drop_all_missing',True)
                     else plan.get('drop_missing',[]))

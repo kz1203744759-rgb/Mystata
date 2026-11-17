@@ -1,6 +1,7 @@
 """Compile and decode read-only Stata descriptive and Pearson statistics."""
 import math
 import re
+from numeric_types import is_numeric_type
 
 
 def validate_statistics(spec, dataset):
@@ -21,7 +22,7 @@ def validate_statistics(spec, dataset):
         if len(matches) != 1:
             raise ValueError(f'变量 {name!r} 不存在或大小写存在歧义。')
         entry = matches[0]
-        if not re.match(r'^(byte|int|long|float|double)(?:\b|$)', entry.get('type', '')):
+        if not is_numeric_type(entry.get('type', '')):
             raise ValueError(f"{entry['name']} 不是数值变量。")
         chosen.append(entry['name'])
     if len(set(chosen)) != len(chosen):

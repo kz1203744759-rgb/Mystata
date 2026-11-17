@@ -51,11 +51,7 @@ try {
             if (-not (Test-PortInUse $port)) { $freePort = $port; break }
         }
         if (-not $freePort) { throw 'All launcher ports are in use. Close an unused local service and try again.' }
-        $cleanupScript = Join-Path $projectDir 'workspace_cleanup.py'
-        if (-not (Test-Path -LiteralPath $cleanupScript -PathType Leaf)) { throw 'Cannot find the workspace cleanup script.' }
         $env:PYTHONDONTWRITEBYTECODE = '1'
-        & $pythonExe $cleanupScript --project-dir $projectDir --startup
-        if ($LASTEXITCODE -ne 0) { throw 'Workspace cleanup failed. Please check the project folders before starting.' }
         # Install a staged interface only when no older server is running.
         $pendingBuild = Join-Path $projectDir 'web-build-next'
         $pendingIndex = Join-Path $pendingBuild 'index.html'

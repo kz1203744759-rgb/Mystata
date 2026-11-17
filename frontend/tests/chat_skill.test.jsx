@@ -7,6 +7,22 @@ import {TextEncoder,TextDecoder} from 'node:util';
 globalThis.TextDecoder=TextDecoder;
 
 afterEach(()=>{cleanup();vi.restoreAllMocks()});
+it('rolls back the chosen DTA file and refreshes its displayed metadata',async()=>{
+  Element.prototype.scrollIntoView=vi.fn();
+  const old={id:'a',filename:'sample.dta',format:'dta',size:100,observations:2,variables:[{name:'id'}]};
+  const restored={...old,variables:[{name:'id'},{name:'name'}]};
+  const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async url=>{
+    if(url==='/api/status')return {ok:true,text:async()=>JSON.stringify({provider:'deepseek'})};
+    if(url==='/api/workspace')return {ok:true,text:async()=>JSON.stringify({dataset:null,loaded:false,raw_files:[old],messages:[],events:[],artifacts:[]})};
+    if(url==='/api/dta/undo')return {ok:true,text:async()=>JSON.stringify({dataset:null,loaded:false,raw_files:[restored],research_variables:{},event:{tool:'undo_dta_change',label:'回滚 DTA 删列',output:'已回滚 sample.dta',error:false}})};
+    throw new Error(url);
+  });
+  render(<App/>);
+  fireEvent.click(await screen.findByRole('button',{name:'回滚 sample.dta'}));
+  await screen.findByText('已回滚 sample.dta');
+  const call=fetcher.mock.calls.find(([url])=>url==='/api/dta/undo');
+  expect(JSON.parse(call[1].body)).toEqual({target:'raw',file_id:'a'});
+});
 it('sends a multi-file merge request to the agent while opening the ETL panel',async()=>{
   Element.prototype.scrollIntoView=vi.fn();
   const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async (url)=>{

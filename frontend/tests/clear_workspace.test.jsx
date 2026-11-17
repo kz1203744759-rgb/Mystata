@@ -35,5 +35,5 @@ it('clears and refreshes files after confirmation',async()=>{
   fireEvent.click(screen.getByRole('button',{name:'清空数据'}));
   await waitFor(()=>expect(screen.queryByText('input.csv')).toBeNull());
   expect(fetcher.mock.calls.some(([url])=>url==='/api/workspace/clear')).toBe(true);
-  expect(screen.getByText('后台重新启动会清空上传数据和历史产物，请先下载保存。')).toBeTruthy();
+  expect(screen.getByText('重启会保留上传数据和历史产物；可通过“清空数据”手动清理。')).toBeTruthy();
 });

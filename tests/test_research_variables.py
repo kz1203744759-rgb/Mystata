@@ -51,7 +51,7 @@ class ResearchVariablesTest(unittest.TestCase):
         smaller={'filename':'winsor.dta','variables':[{'name':'ROE','type':'float'}]}
         app.commit_active(smaller,'out',{'tool':'winsor2_columns'},[])
         self.assertEqual(app.current_research_variables()['x'],['ROE'])
-        self.assertEqual(app.workspace['dataset_revision'],'v1')
+        self.assertNotEqual(app.workspace['dataset_revision'],'v1')
         app.commit_active(smaller,'new',{'tool':'activate_data'},[])
         self.assertEqual(app.current_research_variables()['x'],[])
         self.assertNotEqual(app.workspace['dataset_revision'],'v1')

@@ -22,3 +22,6 @@ web-build-multi/
 # Local environment overrides (keep an optional example file)
 .env.*
 !.env.example
+
+# Local research context
+.econagent/

@@ -6,11 +6,18 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock,patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from merge_workflow import merge_preparation_request,preview_message,preview_only_request
+from merge_workflow import merge_preparation_request,preview_message,preview_only_request,resolve_year_filter
 from test_agent_rounds import AgentRoundsTest,FakeSession,done,pending
 
 
 class MergeWorkflowTest(unittest.TestCase):
+    def test_year_request_boundaries_and_ambiguous_cases(self):
+        expected={'field':'year','start':2010,'end':2024}
+        self.assertEqual(resolve_year_filter('按股票代码和年份合并，保留2010-2024年数据，每个文件的企业名称都不要',None),expected)
+        self.assertEqual(resolve_year_filter('保留2010至2024年的样本',{'field':'year','start':2011,'end':2023}),expected)
+        with self.assertRaises(ValueError): resolve_year_filter('排除2010-2024年',None)
+        with self.assertRaises(ValueError): resolve_year_filter('数据范围2010-2024和2012-2020',None)
+        with self.assertRaises(ValueError): resolve_year_filter('只保留2010年以后',None)
     def test_routes_merge_but_not_followup_analysis(self):
         self.assertTrue(merge_preparation_request('以 id 和 year 合并三个文件并挂载',['a','b']))
         self.assertFalse(merge_preparation_request('对合并后的数据进行回归',['a','b']))

@@ -39,6 +39,18 @@ class EtlValidationTest(unittest.TestCase):
         with self.assertRaises(ValueError): validate_plan({**self.plan,'keys':['missing']},self.files)
         with self.assertRaises(ValueError): validate_plan({**self.plan,'mappings':self.rows+[{'target':'again','sources':{'a':0},'convert':'none','keep':True}]},self.files)
 
+    def test_year_filter_is_identical_in_preview_and_execution(self):
+        plan={**self.plan,'year_filter':{'field':'value','start':2010,'end':2024}}
+        for preview in (True,False):
+            code,_=compile_plan(plan,self.files,Path('/tmp/run'),Path('/tmp/run/result.dta'),'a'*32,preview=preview)
+            self.assertIn('drop if missing(value) | value < 2010 | value > 2024',code)
+            self.assertIn('ETL_YEAR_FILTER_DROPPED=',code)
+            self.assertIn('assert value >= 2010',code)
+            self.assertIn('assert value <= 2024',code)
+        for bad in ({'field':'missing','start':2010,'end':2024},{'field':'value','start':2025,'end':2024},
+                    {'field':'value','start':None,'end':None},{'field':'value','start':True,'end':2024}):
+            with self.assertRaises(ValueError):validate_plan({**self.plan,'year_filter':bad},self.files)
+
     def test_raw_upload_keeps_existing_active_dataset(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
             root=Path(tmp)
